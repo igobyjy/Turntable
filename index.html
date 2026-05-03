@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>次元决策转盘 - 命运之轮</title>
+    <title>决策转盘</title>
     <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* 浅色模式变量 */
+            /* 基础变量 */
             --bg-color: #fff0f3;
             --card-bg: #ffffff;
             --text-color: #2d3436;
@@ -17,7 +17,6 @@
             --anime-shadow: 8px 8px 0px #2d3436;
         }
 
-        /* 自动切换深色模式 */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-color: #1a1a1a;
@@ -46,58 +45,105 @@
 
         .container {
             width: 95%;
-            max-width: 450px;
+            max-width: 480px;
             background-color: var(--card-bg);
-            /* 漫画波点背景 */
             background-image: radial-gradient(var(--dot-color) 20%, transparent 20%);
             background-size: 20px 20px;
-            padding: 30px 20px;
+            padding: 25px;
             border: var(--border-style);
             border-radius: 25px;
             box-shadow: var(--anime-shadow);
             text-align: center;
-            position: relative;
         }
 
-        h1 { margin-top: 0; font-size: 2rem; letter-spacing: 2px; }
+        /* --- 新增：配置管理区域样式 --- */
+        .config-manager {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px dashed var(--text-color);
+        }
+        
+        .manager-row {
+            display: flex;
+            gap: 8px;
+        }
 
+        select, input[type="text"] {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            padding: 8px;
+            border: 2px solid var(--text-color);
+            border-radius: 8px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            flex: 1;
+        }
+
+        /* --- 按钮样式 --- */
+        button {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            cursor: pointer;
+            border: 3px solid var(--text-color);
+            border-radius: 12px;
+            transition: all 0.1s;
+        }
+
+        .btn-main {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 12px;
+            font-size: 1.2rem;
+            box-shadow: 4px 4px 0px var(--text-color);
+            width: 100%;
+        }
+
+        .btn-sub {
+            background-color: transparent;
+            color: var(--text-color);
+            padding: 5px 15px;
+            font-size: 0.9rem;
+            border-width: 2px;
+        }
+
+        .btn-del {
+            background-color: #ff4757;
+            color: white;
+            border-width: 2px;
+        }
+
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px var(--text-color);
+        }
+
+        /* --- 转盘与显示区域 --- */
         .wheel-box {
             position: relative;
-            width: 320px;
-            height: 320px;
-            margin: 20px auto;
+            width: 280px;
+            height: 280px;
+            margin: 15px auto;
         }
 
         #wheelCanvas {
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             border-radius: 50%;
             border: var(--border-style);
             background: #fff;
         }
 
         #pointer {
-            position: absolute;
-            top: -15px;
-            left: 50%;
+            position: absolute; top: -15px; left: 50%;
             transform: translateX(-50%);
-            font-size: 40px;
-            color: var(--accent-color);
+            font-size: 35px; color: var(--accent-color);
             z-index: 10;
             filter: drop-shadow(2px 2px 0px var(--text-color));
         }
 
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
         textarea {
-            width: 100%;
-            height: 80px;
-            padding: 10px;
+            width: 100%; height: 80px;
+            padding: 10px; margin: 15px 0;
             border: 3px solid var(--text-color);
             border-radius: 10px;
             background: var(--card-bg);
@@ -106,37 +152,29 @@
             resize: none;
         }
 
-        button {
-            padding: 12px;
-            font-family: 'ZCOOL KuaiLe', cursive;
-            font-size: 1.2rem;
-            cursor: pointer;
-            background-color: var(--accent-color);
-            color: white;
-            border: 3px solid var(--text-color);
-            border-radius: 12px;
-            box-shadow: 4px 4px 0px var(--text-color);
-            transition: all 0.1s;
-        }
-
-        button:active {
-            transform: translate(2px, 2px);
-            box-shadow: 2px 2px 0px var(--text-color);
-        }
-
         #resultText {
-            margin-top: 15px;
-            font-size: 1.3rem;
-            min-height: 1.5em;
+            font-size: 1.2rem; min-height: 1.5em;
             color: var(--accent-color);
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>✨ 命运召集 ✨</h1>
+    <h1>✨ 命运之轮 ✨</h1>
     
+    <div class="config-manager">
+        <div class="manager-row">
+            <select id="setSelector"></select>
+            <button id="delBtn" class="btn-sub btn-del">删除</button>
+        </div>
+        <div class="manager-row">
+            <input type="text" id="setNameInput" placeholder="新配置名称...">
+            <button id="saveBtn" class="btn-sub">保存/新建</button>
+        </div>
+    </div>
+
     <div class="wheel-box">
         <div id="pointer">▼</div>
         <canvas id="wheelCanvas" width="500" height="500"></canvas>
@@ -144,134 +182,167 @@
 
     <div id="resultText">准备好接受启示了吗？</div>
 
-    <div class="controls">
-        <textarea id="optionsInput" placeholder="每行输入一个选项..."></textarea>
-        <button id="spinBtn">召唤命运旋转！</button>
-        <button id="saveBtn" style="background-color: transparent; color: var(--text-color); font-size: 0.9rem; border-width: 2px;">保存当前设定</button>
-    </div>
+    <textarea id="optionsInput" placeholder="每行输入一个选项..."></textarea>
+    
+    <button id="spinBtn" class="btn-main">召唤命运旋转！</button>
 </div>
 
 <script>
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
-    const spinBtn = document.getElementById('spinBtn');
-    const saveBtn = document.getElementById('saveBtn');
+    const setSelector = document.getElementById('setSelector');
+    const setNameInput = document.getElementById('setNameInput');
     const optionsInput = document.getElementById('optionsInput');
     const resultText = document.getElementById('resultText');
+    const tickSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3');
 
-    // 初始化音效 (可以使用本地 spin.mp3 或这个占位地址)
-    const tickSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3'); 
-
-    let options = ["吃拉面", "睡大觉", "打游戏", "写代码", "补番", "去运动"];
+    // 1. 初始化数据结构：{"配置名": ["选项1", "选项2"]}
+    let allSets = {
+        "默认菜单": ["吃拉面", "睡大觉", "打游戏", "写代码", "补番", "去运动"],
+        "真心话": ["初恋是谁", "最近一次撒谎", "手机最后一张照片", "最讨厌的人"]
+    };
+    let currentSetName = "默认菜单";
     let currentRotation = 0;
     let isSpinning = false;
     let lastSegmentIndex = -1;
 
-    // 1. 加载本地存储数据
-    const saved = localStorage.getItem('animeWheelData');
-    if (saved) {
-        options = JSON.parse(saved);
-        optionsInput.value = options.join('\n');
-    } else {
-        optionsInput.value = options.join('\n');
+    // 2. 加载本地数据
+    function init() {
+        const saved = localStorage.getItem('animeWheelProData');
+        if (saved) {
+            allSets = JSON.parse(saved);
+        }
+        updateSelector();
+        loadSet(Object.keys(allSets)[0]);
     }
 
+    // 更新下拉菜单列表
+    function updateSelector() {
+        setSelector.innerHTML = "";
+        Object.keys(allSets).forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.innerText = name;
+            setSelector.appendChild(opt);
+        });
+        setSelector.value = currentSetName;
+    }
+
+    // 切换当前显示的配置内容
+    function loadSet(name) {
+        if (!allSets[name]) return;
+        currentSetName = name;
+        setNameInput.value = name;
+        optionsInput.value = allSets[name].join('\n');
+        drawWheel();
+    }
+
+    // 绘制转盘
     function drawWheel() {
+        const options = allSets[currentSetName];
         const n = options.length;
         const arc = (2 * Math.PI) / n;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         options.forEach((text, i) => {
             const angle = currentRotation + i * arc;
-            
-            // 动漫风配色：高饱和度
             ctx.fillStyle = `hsl(${i * (360 / n)}, 80%, 75%)`;
             ctx.beginPath();
             ctx.moveTo(250, 250);
             ctx.arc(250, 250, 250, angle, angle + arc);
             ctx.fill();
-            
-            // 描边
             ctx.strokeStyle = "#2d3436";
             ctx.lineWidth = 4;
             ctx.stroke();
 
-            // 绘制文字
             ctx.save();
             ctx.translate(250, 250);
             ctx.rotate(angle + arc / 2);
             ctx.fillStyle = "#2d3436";
             ctx.font = "bold 24px 'ZCOOL KuaiLe'";
             ctx.textAlign = "right";
-            ctx.fillText(text, 220, 10);
+            ctx.fillText(text.substring(0, 8), 220, 10); // 截断过长文字
             ctx.restore();
         });
     }
 
-    function spin() {
-        if (isSpinning) return;
+    // --- 事件监听 ---
+
+    // 切换配置
+    setSelector.onchange = (e) => loadSet(e.target.value);
+
+    // 保存/新建配置
+    document.getElementById('saveBtn').onclick = () => {
+        const name = setNameInput.value.trim();
+        const items = optionsInput.value.split('\n').map(s => s.trim()).filter(s => s !== "");
         
-        // 尝试播放一次声音以激活浏览器的音频权限
+        if (!name) return alert("给这个配置起个名字吧！");
+        if (items.length < 2) return alert("至少需要两个选项哦！");
+
+        allSets[name] = items;
+        currentSetName = name;
+        localStorage.setItem('animeWheelProData', JSON.stringify(allSets));
+        updateSelector();
+        drawWheel();
+        alert(`✨ 『${name}』已同步至次元库！`);
+    };
+
+    // 删除配置
+    document.getElementById('delBtn').onclick = () => {
+        const keys = Object.keys(allSets);
+        if (keys.length <= 1) return alert("这是最后一个配置了，留着它吧！");
+        if (confirm(`确定要抹除『${currentSetName}』的记忆吗？`)) {
+            delete allSets[currentSetName];
+            currentSetName = Object.keys(allSets)[0];
+            localStorage.setItem('animeWheelProData', JSON.stringify(allSets));
+            init();
+        }
+    };
+
+    // 旋转逻辑
+    document.getElementById('spinBtn').onclick = () => {
+        if (isSpinning) return;
         tickSound.play().then(() => tickSound.pause()).catch(() => {});
 
         isSpinning = true;
         resultText.innerText = "🔮 命运流转中...";
-        
-        const extraSpins = Math.random() * 20 + 25; // 随机旋转圈数
-        const duration = 4000; // 动画时长
+        const options = allSets[currentSetName];
+        const extraSpins = Math.random() * 20 + 25;
+        const duration = 4000;
         const startTimestamp = performance.now();
         const startRotation = currentRotation;
 
         function animate(now) {
             const elapsed = now - startTimestamp;
             const progress = Math.min(elapsed / duration, 1);
-            
-            // Cubic Ease-Out 减速曲线
             const easing = 1 - Math.pow(1 - progress, 3);
             currentRotation = startRotation + easing * extraSpins;
-
             drawWheel();
 
-            // 音效逻辑：计算经过的扇区
             const arc = (2 * Math.PI) / options.length;
-            // 偏移 90 度是因为指针在上方
             const normalizedRotation = (currentRotation + Math.PI / 2) % (2 * Math.PI);
-            const currentSegmentIndex = Math.floor(
-                (2 * Math.PI - normalizedRotation + (2 * Math.PI)) % (2 * Math.PI) / arc
-            );
+            const currentIdx = Math.floor((2 * Math.PI - normalizedRotation + (2 * Math.PI)) % (2 * Math.PI) / arc);
 
-            if (currentSegmentIndex !== lastSegmentIndex) {
+            if (currentIdx !== lastSegmentIndex) {
                 tickSound.currentTime = 0;
-                tickSound.volume = 0.4;
                 tickSound.play().catch(() => {});
-                lastSegmentIndex = currentSegmentIndex;
+                lastSegmentIndex = currentIdx;
             }
 
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
                 isSpinning = false;
-                const finalIndex = currentSegmentIndex % options.length;
-                resultText.innerText = `✨ 结果是：【${options[finalIndex]}】`;
+                resultText.innerText = `✨ 结果是：【${options[currentIdx % options.length]}】`;
             }
         }
         requestAnimationFrame(animate);
-    }
-
-    saveBtn.onclick = () => {
-        const lines = optionsInput.value.split('\n').map(s => s.trim()).filter(s => s !== "");
-        if (lines.length < 2) return alert("至少需要两个选项哦！");
-        options = lines;
-        localStorage.setItem('animeWheelData', JSON.stringify(options));
-        drawWheel();
-        alert("✨ 记忆成功！");
     };
 
-    spinBtn.onclick = spin;
-
-    // 初始化绘制
-    drawWheel();
+    init();
 </script>
+</body>
+</html>
 
 </body>
 </html>
