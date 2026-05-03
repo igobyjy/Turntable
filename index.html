@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>次元决策转盘 - 命运之轮</title>
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* 浅色模式变量 */
+            --bg-color: #fff0f3;
+            --card-bg: #ffffff;
+            --text-color: #2d3436;
+            --accent-color: #ff6b81;
+            --dot-color: rgba(255, 107, 129, 0.1);
+            --border-style: 4px solid #2d3436;
+            --anime-shadow: 8px 8px 0px #2d3436;
+        }
+
+        /* 自动切换深色模式 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --card-bg: #2d2d2d;
+                --text-color: #f5f6fa;
+                --accent-color: #fab1a0;
+                --dot-color: rgba(255, 255, 255, 0.05);
+                --border-style: 4px solid #f5f6fa;
+                --anime-shadow: 8px 8px 0px #111;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'ZCOOL KuaiLe', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 450px;
+            background-color: var(--card-bg);
+            /* 漫画波点背景 */
+            background-image: radial-gradient(var(--dot-color) 20%, transparent 20%);
+            background-size: 20px 20px;
+            padding: 30px 20px;
+            border: var(--border-style);
+            border-radius: 25px;
+            box-shadow: var(--anime-shadow);
+            text-align: center;
+            position: relative;
+        }
+
+        h1 { margin-top: 0; font-size: 2rem; letter-spacing: 2px; }
+
+        .wheel-box {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 20px auto;
+        }
+
+        #wheelCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: var(--border-style);
+            background: #fff;
+        }
+
+        #pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 40px;
+            color: var(--accent-color);
+            z-index: 10;
+            filter: drop-shadow(2px 2px 0px var(--text-color));
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 3px solid var(--text-color);
+            border-radius: 10px;
+            background: var(--card-bg);
+            color: var(--text-color);
+            font-family: inherit;
+            resize: none;
+        }
+
+        button {
+            padding: 12px;
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: 1.2rem;
+            cursor: pointer;
+            background-color: var(--accent-color);
+            color: white;
+            border: 3px solid var(--text-color);
+            border-radius: 12px;
+            box-shadow: 4px 4px 0px var(--text-color);
+            transition: all 0.1s;
+        }
+
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--text-color);
+        }
+
+        #resultText {
+            margin-top: 15px;
+            font-size: 1.3rem;
+            min-height: 1.5em;
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>✨ 命运召集 ✨</h1>
+    
+    <div class="wheel-box">
+        <div id="pointer">▼</div>
+        <canvas id="wheelCanvas" width="500" height="500"></canvas>
+    </div>
+
+    <div id="resultText">准备好接受启示了吗？</div>
+
+    <div class="controls">
+        <textarea id="optionsInput" placeholder="每行输入一个选项..."></textarea>
+        <button id="spinBtn">召唤命运旋转！</button>
+        <button id="saveBtn" style="background-color: transparent; color: var(--text-color); font-size: 0.9rem; border-width: 2px;">保存当前设定</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const optionsInput = document.getElementById('optionsInput');
+    const resultText = document.getElementById('resultText');
+
+    // 初始化音效 (可以使用本地 spin.mp3 或这个占位地址)
+    const tickSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3'); 
+
+    let options = ["吃拉面", "睡大觉", "打游戏", "写代码", "补番", "去运动"];
+    let currentRotation = 0;
+    let isSpinning = false;
+    let lastSegmentIndex = -1;
+
+    // 1. 加载本地存储数据
+    const saved = localStorage.getItem('animeWheelData');
+    if (saved) {
+        options = JSON.parse(saved);
+        optionsInput.value = options.join('\n');
+    } else {
+        optionsInput.value = options.join('\n');
+    }
+
+    function drawWheel() {
+        const n = options.length;
+        const arc = (2 * Math.PI) / n;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        options.forEach((text, i) => {
+            const angle = currentRotation + i * arc;
+            
+            // 动漫风配色：高饱和度
+            ctx.fillStyle = `hsl(${i * (360 / n)}, 80%, 75%)`;
+            ctx.beginPath();
+            ctx.moveTo(250, 250);
+            ctx.arc(250, 250, 250, angle, angle + arc);
+            ctx.fill();
+            
+            // 描边
+            ctx.strokeStyle = "#2d3436";
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // 绘制文字
+            ctx.save();
+            ctx.translate(250, 250);
+            ctx.rotate(angle + arc / 2);
+            ctx.fillStyle = "#2d3436";
+            ctx.font = "bold 24px 'ZCOOL KuaiLe'";
+            ctx.textAlign = "right";
+            ctx.fillText(text, 220, 10);
+            ctx.restore();
+        });
+    }
+
+    function spin() {
+        if (isSpinning) return;
+        
+        // 尝试播放一次声音以激活浏览器的音频权限
+        tickSound.play().then(() => tickSound.pause()).catch(() => {});
+
+        isSpinning = true;
+        resultText.innerText = "🔮 命运流转中...";
+        
+        const extraSpins = Math.random() * 20 + 25; // 随机旋转圈数
+        const duration = 4000; // 动画时长
+        const startTimestamp = performance.now();
+        const startRotation = currentRotation;
+
+        function animate(now) {
+            const elapsed = now - startTimestamp;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Cubic Ease-Out 减速曲线
+            const easing = 1 - Math.pow(1 - progress, 3);
+            currentRotation = startRotation + easing * extraSpins;
+
+            drawWheel();
+
+            // 音效逻辑：计算经过的扇区
+            const arc = (2 * Math.PI) / options.length;
+            // 偏移 90 度是因为指针在上方
+            const normalizedRotation = (currentRotation + Math.PI / 2) % (2 * Math.PI);
+            const currentSegmentIndex = Math.floor(
+                (2 * Math.PI - normalizedRotation + (2 * Math.PI)) % (2 * Math.PI) / arc
+            );
+
+            if (currentSegmentIndex !== lastSegmentIndex) {
+                tickSound.currentTime = 0;
+                tickSound.volume = 0.4;
+                tickSound.play().catch(() => {});
+                lastSegmentIndex = currentSegmentIndex;
+            }
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                isSpinning = false;
+                const finalIndex = currentSegmentIndex % options.length;
+                resultText.innerText = `✨ 结果是：【${options[finalIndex]}】`;
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+
+    saveBtn.onclick = () => {
+        const lines = optionsInput.value.split('\n').map(s => s.trim()).filter(s => s !== "");
+        if (lines.length < 2) return alert("至少需要两个选项哦！");
+        options = lines;
+        localStorage.setItem('animeWheelData', JSON.stringify(options));
+        drawWheel();
+        alert("✨ 记忆成功！");
+    };
+
+    spinBtn.onclick = spin;
+
+    // 初始化绘制
+    drawWheel();
+</script>
+
+</body>
+</html>
