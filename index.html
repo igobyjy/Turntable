@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* 基础变量 */
             --bg-color: #fff0f3;
             --card-bg: #ffffff;
             --text-color: #2d3436;
@@ -56,7 +55,6 @@
             text-align: center;
         }
 
-        /* --- 新增：配置管理区域样式 --- */
         .config-manager {
             display: flex;
             flex-direction: column;
@@ -81,7 +79,6 @@
             flex: 1;
         }
 
-        /* --- 按钮样式 --- */
         button {
             font-family: 'ZCOOL KuaiLe', cursive;
             cursor: pointer;
@@ -118,7 +115,6 @@
             box-shadow: 1px 1px 0px var(--text-color);
         }
 
-        /* --- 转盘与显示区域 --- */
         .wheel-box {
             position: relative;
             width: 280px;
@@ -194,19 +190,20 @@
     const setNameInput = document.getElementById('setNameInput');
     const optionsInput = document.getElementById('optionsInput');
     const resultText = document.getElementById('resultText');
+    
+    // 初始化音效，预加载
     const tickSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3');
+    tickSound.load();
 
-    // 1. 初始化数据结构：{"配置名": ["选项1", "选项2"]}
     let allSets = {
         "默认菜单": ["吃拉面", "睡大觉", "打游戏", "写代码", "补番", "去运动"],
-        "真心话": ["初恋是谁", "最近一次撒谎", "手机最后一张照片", "最讨厌的人"]
+        "做选择": ["做", "不做"]
     };
     let currentSetName = "默认菜单";
     let currentRotation = 0;
     let isSpinning = false;
     let lastSegmentIndex = -1;
 
-    // 2. 加载本地数据
     function init() {
         const saved = localStorage.getItem('animeWheelProData');
         if (saved) {
@@ -216,7 +213,6 @@
         loadSet(Object.keys(allSets)[0]);
     }
 
-    // 更新下拉菜单列表
     function updateSelector() {
         setSelector.innerHTML = "";
         Object.keys(allSets).forEach(name => {
@@ -228,7 +224,6 @@
         setSelector.value = currentSetName;
     }
 
-    // 切换当前显示的配置内容
     function loadSet(name) {
         if (!allSets[name]) return;
         currentSetName = name;
@@ -237,7 +232,6 @@
         drawWheel();
     }
 
-    // 绘制转盘
     function drawWheel() {
         const options = allSets[currentSetName];
         const n = options.length;
@@ -261,17 +255,13 @@
             ctx.fillStyle = "#2d3436";
             ctx.font = "bold 24px 'ZCOOL KuaiLe'";
             ctx.textAlign = "right";
-            ctx.fillText(text.substring(0, 8), 220, 10); // 截断过长文字
+            ctx.fillText(text.substring(0, 8), 220, 10);
             ctx.restore();
         });
     }
 
-    // --- 事件监听 ---
-
-    // 切换配置
     setSelector.onchange = (e) => loadSet(e.target.value);
 
-    // 保存/新建配置
     document.getElementById('saveBtn').onclick = () => {
         const name = setNameInput.value.trim();
         const items = optionsInput.value.split('\n').map(s => s.trim()).filter(s => s !== "");
@@ -283,11 +273,10 @@
         currentSetName = name;
         localStorage.setItem('animeWheelProData', JSON.stringify(allSets));
         updateSelector();
-        drawWheel();
+        loadSet(name);
         alert(`✨ 『${name}』已同步至次元库！`);
     };
 
-    // 删除配置
     document.getElementById('delBtn').onclick = () => {
         const keys = Object.keys(allSets);
         if (keys.length <= 1) return alert("这是最后一个配置了，留着它吧！");
@@ -299,18 +288,28 @@
         }
     };
 
-    // 旋转逻辑
+    // 旋转逻辑优化：包含音频预热和克隆播放
     document.getElementById('spinBtn').onclick = () => {
         if (isSpinning) return;
-        tickSound.play().then(() => tickSound.pause()).catch(() => {});
+
+        // 手机端音频解锁：点击瞬间触发播放后立即暂停
+        tickSound.play().then(() => {
+            tickSound.pause();
+            tickSound.currentTime = 0;
+        }).catch(e => console.warn("音频预热受阻:", e));
 
         isSpinning = true;
         resultText.innerText = "🔮 命运流转中...";
         const options = allSets[currentSetName];
+        const n = options.length;
+        const arc = (2 * Math.PI) / n;
+        
         const extraSpins = Math.random() * 20 + 25;
         const duration = 4000;
         const startTimestamp = performance.now();
         const startRotation = currentRotation;
+        
+        lastSegmentIndex = -1;
 
         function animate(now) {
             const elapsed = now - startTimestamp;
@@ -319,13 +318,16 @@
             currentRotation = startRotation + easing * extraSpins;
             drawWheel();
 
-            const arc = (2 * Math.PI) / options.length;
+            // 计算当前经过的格子索引
             const normalizedRotation = (currentRotation + Math.PI / 2) % (2 * Math.PI);
             const currentIdx = Math.floor((2 * Math.PI - normalizedRotation + (2 * Math.PI)) % (2 * Math.PI) / arc);
 
+            // 当索引变化时播放声音
             if (currentIdx !== lastSegmentIndex) {
-                tickSound.currentTime = 0;
-                tickSound.play().catch(() => {});
+                // 使用克隆节点解决手机端短时间多次播放的冲突
+                const soundClone = tickSound.cloneNode();
+                soundClone.volume = 0.4;
+                soundClone.play().catch(() => {});
                 lastSegmentIndex = currentIdx;
             }
 
@@ -333,7 +335,7 @@
                 requestAnimationFrame(animate);
             } else {
                 isSpinning = false;
-                resultText.innerText = `✨ 结果是：【${options[currentIdx % options.length]}】`;
+                resultText.innerText = `✨ 结果是：【${options[currentIdx % n]}】`;
             }
         }
         requestAnimationFrame(animate);
